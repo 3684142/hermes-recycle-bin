@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# rm shim — plugin form (${HERMES_HOME}/plugins/recycle-bin/bin/rm).
+# Prepended to PATH for `terminal` commands by the recycle-bin plugin's pre_tool_call hook.
+# Moves files/dirs to the Windows Recycle Bin via ../trash.py (shell32 SHFileOperationW).
+# Explicit /usr/bin/rm, `command rm`, os.remove, find -delete bypass this shim (by design).
+# Native tools need Windows paths — MSYS_NO_PATHCONV is set in Hermes sessions, so paths are
+# cygpath -w'ed before being handed to python.
+set -u
+
+# Trivial passthroughs so `rm --help/--version` behaves normally.
+case "${1:-}" in
+  --help|-h|--version) exec /usr/bin/rm "$@" ;;
+esac
+
+paths=()
+recursive=0
+force=0
+for a in "$@"; do
+  case "$a" in
+    --) ;;
+    -*) case "$a" in *[rR]*) recursive=1 ;; esac
+        case "$a" in *f*) force=1 ;; esac ;;
+    *)  paths+=("$a") ;;
+  esac
+done
+
+if [ "${#paths[@]}" -eq 0 ]; then
+  echo "rm: missing operand" >&2
+  exit 1
+fi
+
+rc=0
+wpaths=()
+for p in "${paths[@]}"; do
+  if [ ! -e "$p" ] && [ ! -L "$p" ]; then
+    if [ "$force" -eq 1 ]; then continue; fi
+    echo "rm: cannot remove '$p': No such file or directory" >&2
+    rc=1
+    continue
+  fi
+  if [ -d "$p" ] && [ "$recursive" -eq 0 ]; then
+    echo "rm: cannot remove '$p': Is a directory" >&2
+    rc=1
+    continue
+  fi
+  w=$(cygpath -w "$p" 2>/dev/null) || { echo "rm: cannot map path '$p'" >&2; rc=1; continue; }
+  wpaths+=("$w")
+done
+
+if [ "${#wpaths[@]}" -eq 0 ]; then
+  exit "$rc"
+fi
+
+# Resolve this plugin's own dir (portable: works for any profile / HERMES_HOME).
+# cygpath -w: python.exe is a NATIVE binary, so it needs C:\... form (a POSIX
+# /c/... path makes it look for C:\c\Users\... and fail with Errno 2).
+_self_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+_self_dir=$(cygpath -w "$_self_dir" 2>/dev/null || echo "$_self_dir")
+_self_dir=${_self_dir//\\//}
+_py=""
+# Prefer the Hermes venv, then any python on PATH.
+_hh=$(cygpath -w "${HERMES_HOME:-$HOME/AppData/Local/hermes}" 2>/dev/null || echo "$HOME/AppData/Local/hermes")
+_hh=${_hh//\\//}
+for cand in \
+    "$_hh/hermes-agent/venv/Scripts/python.exe" \
+    "$HOME/AppData/Local/hermes/hermes-agent/venv/Scripts/python.exe"; do
+  if [ -n "$cand" ] && [ -f "$(cygpath -u "$cand" 2>/dev/null || echo "$cand")" ]; then _py="$cand"; break; fi
+done
+if [ -z "$_py" ]; then
+  _py=$(command -v python 2>/dev/null || command -v python3 2>/dev/null || true)
+fi
+if [ -z "$_py" ]; then
+  echo "rm: no python available for recycle-bin backend" >&2
+  exit 2
+fi
+
+"$_py" "$_self_dir/../trash.py" "${wpaths[@]}" || rc=$?
+exit "$rc"
