@@ -1,0 +1,8 @@
+# Shell scripts MUST stay LF — CRLF breaks bash (especially the extensionless shim).
+bin/rm   text eol=lf
+*.sh     text eol=lf
+*.ps1    text eol=crlf
+*.py     text eol=lf
+*.md     text eol=lf
+*.yaml   text eol=lf
+LICENSE  text eol=lf
