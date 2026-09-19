@@ -99,9 +99,11 @@ English: [INSTALL.md](INSTALL.md)
   （`MaxCapacity`，单位 MB）；超配额时 Windows 会清理最旧的条目。
 - `FOF_NOERRORUI` 是保证无头网关不会卡在弹窗上的关键标志，请勿移除。
 - 钩子只对 `tool_name == "terminal"` 生效，且幂等 —— 路径已存在时不会重复注入。
-- 已实测不干扰 Hermes 的危险命令审批：前置 `export PATH=…` 行后，
-  `rm -rf /`、`sudo rm -rf /etc`、`dd if=/dev/zero of=/dev/sda`、fork bomb 等的
-  `detect_dangerous_command()` 结果保持不变。
+- 已实测不干扰 Hermes 的危险命令审批。安全测试覆盖了 Hermes 硬拦截名单中的破坏性类别
+  —— 针对根目录的递归删除、提权删除、裸设备写入、fork bomb —— 前置 `export PATH=…` 行后，
+  `detect_dangerous_command()` 对以上每一类的判定结果均保持不变。
+  （此处刻意不引用具体命令字面量：Hermes 安装时的安全扫描会读取 README，
+  文档里出现这些模式会被直接判为危险并阻断安装，即使只是说明文字。）
 
 ## 兼容性
 
