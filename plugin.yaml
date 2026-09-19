@@ -1,8 +1,12 @@
 name: recycle-bin
-version: 1.0.0
+version: 1.1.0
 description: "Send Hermes terminal `rm` deletions to the Windows Recycle Bin instead of deleting permanently. Toggle with `hermes plugins enable|disable recycle-bin`."
-author: "Hermes Agent (local, for this machine)"
+author: 3684142
 kind: standalone
+manifest_version: 2
+license: MIT
+homepage: https://github.com/3684142/hermes-recycle-bin
+tags: [safety, filesystem, windows, recycle-bin, rm]
 platforms:
   - windows
 provides_hooks:

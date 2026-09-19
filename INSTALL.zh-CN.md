@@ -53,7 +53,7 @@ hermes plugins doctor recycle-bin
 预期：
 
 ```
-  manifest: recycle-bin 1.0.0 (standalone)
+  manifest: recycle-bin 1.1.0 (standalone)
   OK: runtime discovery, manifest parsing, import, and registration passed
   registrations: 0 tool(s), 1 hook(s)
 ```
